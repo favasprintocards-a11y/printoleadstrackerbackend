@@ -1,0 +1,27 @@
+{
+  "name": "lead-management-server",
+  "version": "1.0.0",
+  "description": "Backend API for Lead Management System",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/db/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.11.4",
+    "multer": "^1.4.5-lts.1",
+    "sql.js": "^1.15.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6"
+  }
+}
