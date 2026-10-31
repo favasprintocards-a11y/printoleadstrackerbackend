@@ -330,32 +330,25 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
 
   // ── 2. One sheet per salesperson ─────────────────────────────────────────
   for (const group of groupedData) {
-    const sheetName = (group.name || 'Unassigned').substring(0, 31).replace(/[:\\/?*\[\]]/g, '');
+    const sheetName = (group.name || 'Unassigned').substring(0, 31).replace(/[:\\/?*[\]]/g, '');
 
     const rows = group.leads.map((l, idx) => ({
       '#': idx + 1,
-      'Name': l.name,
-      'Phone': l.phone,
-      'WhatsApp': l.whatsapp || l.phone,
-      'Email': l.email || '',
-      'Company': l.company || '',
-      'City': l.city || '',
-      'Product Interest': l.product_interest || '',
-      'Ad Campaign': l.campaign_name || 'Meta Ads - General',
-      'Source': l.source || '',
-      'Status': l.status,
-      'Follow-up Date': l.follow_up_date || '',
-      'Remarks': l.remarks || '',
-      'Uploaded On': l.createdAt
-        ? new Date(l.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        : ''
+      'Customer Name': l.name,
+      'Phone Number': l.phone,
+      'Last Status': l.status,
+      'Next Follow-up Date': l.follow_up_date || '',
+      'Remarks': l.remarks || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = [
-      { wch: 5 }, { wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 26 },
-      { wch: 22 }, { wch: 14 }, { wch: 30 }, { wch: 26 }, { wch: 14 },
-      { wch: 15 }, { wch: 14 }, { wch: 35 }, { wch: 22 }
+      { wch: 5 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 40 }
     ];
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
