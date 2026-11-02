@@ -861,8 +861,9 @@ router.put('/:id', async (req, res) => {
       if (remarks !== undefined) existing.remarks = remarks ? remarks.trim() : '';
       if (follow_up_date !== undefined) existing.follow_up_date = follow_up_date || null;
     } else {
-      // Sales team: can update status, remarks, follow_up_date
+      // Sales team: can update status, remarks, follow_up_date, campaign_name
       existing.status = newStatus;
+      if (campaign_name !== undefined) existing.campaign_name = campaign_name ? campaign_name.trim() : 'Meta Ads - General';
       if (remarks !== undefined) existing.remarks = remarks ? remarks.trim() : '';
       if (follow_up_date !== undefined) existing.follow_up_date = follow_up_date || null;
     }
@@ -1218,6 +1219,36 @@ router.post('/bulk-campaign', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Bulk campaign error:', err);
     return res.status(500).json({ error: 'Failed to bulk categorize leads by campaign.' });
+  }
+});
+
+/**
+ * POST /api/leads/campaign/rename
+ * Rename a campaign across all leads that belong to it (Admin only)
+ */
+router.post('/campaign/rename', requireAdmin, async (req, res) => {
+  try {
+    const { old_campaign, new_campaign } = req.body;
+
+    if (!old_campaign || !new_campaign || !new_campaign.trim()) {
+      return res.status(400).json({ error: 'Both old and new campaign names are required.' });
+    }
+
+    const cleanOld = old_campaign.trim();
+    const cleanNew = new_campaign.trim();
+
+    const result = await Lead.updateMany(
+      { campaign_name: cleanOld },
+      { $set: { campaign_name: cleanNew } }
+    );
+
+    return res.json({
+      message: `Successfully renamed campaign from "${cleanOld}" to "${cleanNew}" across ${result.modifiedCount} lead(s).`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (err) {
+    console.error('Rename campaign error:', err);
+    return res.status(500).json({ error: 'Failed to rename campaign.' });
   }
 });
 
