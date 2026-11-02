@@ -256,15 +256,25 @@ router.post('/upload/error-report', requireAdmin, (req, res) => {
 });
 
 /**
- * GET /api/leads/report/salesperson
+ * GET & POST /api/leads/report/salesperson
  * Download salesperson-wise leads report Excel (Admin only)
- * Query params: date_from, date_to, campaign, status
+ * Supports query params or POST body with lead_ids
  */
-router.get('/report/salesperson', requireAdmin, async (req, res) => {
+const generateSalespersonReportHandler = async (req, res) => {
   try {
-    const { date_from, date_to, campaign, status } = req.query;
+    const params = req.method === 'POST' ? req.body : req.query;
+    const { date_from, date_to, campaign, status } = params;
+    const rawIds = params.lead_ids || params.ids;
 
     const filter = {};
+    if (rawIds) {
+      const idArray = Array.isArray(rawIds) ? rawIds : String(rawIds).split(',');
+      const validIds = idArray.map(s => String(s).trim()).filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length > 0) {
+        filter._id = { $in: validIds };
+      }
+    }
+
     if (campaign && campaign !== 'all') filter.campaign_name = campaign;
     if (status && status !== 'all') filter.status = status;
     if (date_from || date_to) {
@@ -348,7 +358,11 @@ router.get('/report/salesperson', requireAdmin, async (req, res) => {
 
     const buffer = generateSalespersonReportBuffer(groupedData, reportDate);
 
-    const fileName = `salesperson_leads_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const isSelected = !!rawIds;
+    const fileName = isSelected
+      ? `selected_leads_report_${new Date().toISOString().split('T')[0]}.xlsx`
+      : `salesperson_leads_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     return res.send(buffer);
@@ -356,17 +370,30 @@ router.get('/report/salesperson', requireAdmin, async (req, res) => {
     console.error('Salesperson report error:', err);
     return res.status(500).json({ error: 'Failed to generate salesperson report.' });
   }
-});
+};
+
+router.get('/report/salesperson', requireAdmin, generateSalespersonReportHandler);
+router.post('/report/salesperson', requireAdmin, generateSalespersonReportHandler);
 
 /**
- * GET /api/leads/export
- * Export filtered leads to Excel (Admin only)
+ * GET & POST /api/leads/export
+ * Export filtered or selected leads to Excel (Admin only)
  */
-router.get('/export', requireAdmin, async (req, res) => {
+const exportLeadsHandler = async (req, res) => {
   try {
-    const { search, status, assigned_to, city, source, campaign, date_from, date_to, sort_by = 'created_at', sort_order = 'desc' } = req.query;
+    const params = req.method === 'POST' ? req.body : req.query;
+    const { search, status, assigned_to, city, source, campaign, date_from, date_to, sort_by = 'created_at', sort_order = 'desc' } = params;
+    const rawIds = params.lead_ids || params.ids;
 
     const filter = {};
+
+    if (rawIds) {
+      const idArray = Array.isArray(rawIds) ? rawIds : String(rawIds).split(',');
+      const validIds = idArray.map(s => String(s).trim()).filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length > 0) {
+        filter._id = { $in: validIds };
+      }
+    }
 
     if (search) {
       const s = search.trim();
@@ -414,14 +441,22 @@ router.get('/export', requireAdmin, async (req, res) => {
     const leads = leadsRaw.map(formatLead);
     const buffer = exportLeadsToExcelBuffer(leads);
 
+    const isSelected = !!rawIds;
+    const fileName = isSelected
+      ? `selected_leads_export_${new Date().toISOString().split('T')[0]}.xlsx`
+      : `leads_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="leads_export.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     return res.send(buffer);
   } catch (err) {
     console.error('Lead export error:', err);
     return res.status(500).json({ error: 'Failed to export leads.' });
   }
-});
+};
+
+router.get('/export', requireAdmin, exportLeadsHandler);
+router.post('/export', requireAdmin, exportLeadsHandler);
 
 /**
  * GET /api/leads
