@@ -283,6 +283,11 @@ const generateSalespersonReportHandler = async (req, res) => {
       if (date_to) filter.createdAt.$lte = new Date(date_to + 'T23:59:59.999Z');
     }
 
+    // Role check: sales can only download their own assigned leads
+    if (req.user.role === 'sales') {
+      filter.assigned_to = req.user._id;
+    }
+
     // Fetch all matching leads with assigned user populated
     const leadsRaw = await Lead.find(filter)
       .populate('assigned_to', 'name email phone')
@@ -372,8 +377,8 @@ const generateSalespersonReportHandler = async (req, res) => {
   }
 };
 
-router.get('/report/salesperson', requireAdmin, generateSalespersonReportHandler);
-router.post('/report/salesperson', requireAdmin, generateSalespersonReportHandler);
+router.get('/report/salesperson', generateSalespersonReportHandler);
+router.post('/report/salesperson', generateSalespersonReportHandler);
 
 /**
  * GET & POST /api/leads/export
@@ -427,6 +432,11 @@ const exportLeadsHandler = async (req, res) => {
       if (date_to) filter.createdAt.$lte = new Date(date_to + 'T23:59:59.999Z');
     }
 
+    // Role check: sales can only export their own assigned leads
+    if (req.user.role === 'sales') {
+      filter.assigned_to = req.user._id;
+    }
+
     const orderDir = (String(sort_order || '').toLowerCase() === 'asc') ? 1 : -1;
     let sortObj = { createdAt: orderDir };
     if (sort_by === 'follow_up_date' || sort_by === 'followup') {
@@ -455,8 +465,8 @@ const exportLeadsHandler = async (req, res) => {
   }
 };
 
-router.get('/export', requireAdmin, exportLeadsHandler);
-router.post('/export', requireAdmin, exportLeadsHandler);
+router.get('/export', exportLeadsHandler);
+router.post('/export', exportLeadsHandler);
 
 /**
  * GET /api/leads
