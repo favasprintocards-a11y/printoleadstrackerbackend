@@ -348,7 +348,7 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
       { wch: 18 },
       { wch: 20 },
       { wch: 20 },
-      { wch: 40 }
+      { wch: 45 }
     ];
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
@@ -375,7 +375,7 @@ export function exportLeadsToExcelBuffer(leads) {
     'Created At': l.createdAt ? new Date(l.createdAt).toLocaleString() : ''
   }));
   const ws = XLSX.utils.json_to_sheet(exportData);
-  ws['!cols'] = [{ wch: 26 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 22 }, { wch: 16 }, { wch: 32 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 35 }, { wch: 22 }];
+  ws['!cols'] = [{ wch: 26 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 22 }, { wch: 16 }, { wch: 32 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 45 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Leads Export');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });

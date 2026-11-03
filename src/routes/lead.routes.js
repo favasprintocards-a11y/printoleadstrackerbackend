@@ -256,8 +256,60 @@ router.post('/upload/error-report', requireAdmin, (req, res) => {
 });
 
 /**
+ * Helper to fetch and attach the last entered remark for a list of leads from LeadActivity
+ */
+async function attachLastEnteredRemarks(leads) {
+  if (!leads || leads.length === 0) return leads;
+  const leadIds = leads.map(l => l._id || l.id).filter(id => mongoose.Types.ObjectId.isValid(id));
+  if (leadIds.length === 0) return leads;
+
+  const activities = await LeadActivity.find({ lead_id: { $in: leadIds } })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const systemPrefixes = [
+    'status updated to',
+    'updated lead status to',
+    'follow-up date set to',
+    'assigned to',
+    'lead unassigned',
+    'co-assigned to',
+    'lead imported',
+    'lead created'
+  ];
+
+  const remarkMap = new Map();
+
+  for (const act of activities) {
+    const lid = act.lead_id.toString();
+    const note = (act.notes || '').trim();
+    if (!note) continue;
+
+    const lower = note.toLowerCase();
+    const isSystem = systemPrefixes.some(p => lower.startsWith(p));
+
+    if (!isSystem && !remarkMap.has(lid)) {
+      remarkMap.set(lid, note);
+    }
+  }
+
+  for (const lead of leads) {
+    const lid = (lead._id || lead.id).toString();
+    if (remarkMap.has(lid)) {
+      lead.remarks = remarkMap.get(lid);
+    } else if (lead.remarks && lead.remarks.trim()) {
+      lead.remarks = lead.remarks.trim();
+    } else {
+      lead.remarks = '';
+    }
+  }
+
+  return leads;
+}
+
+/**
  * GET & POST /api/leads/report/salesperson
- * Download salesperson-wise leads report Excel (Admin only)
+ * Download salesperson-wise leads report Excel
  * Supports query params or POST body with lead_ids
  */
 const generateSalespersonReportHandler = async (req, res) => {
@@ -294,6 +346,7 @@ const generateSalespersonReportHandler = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const leads = leadsRaw.map(formatLead);
+    await attachLastEnteredRemarks(leads);
 
     // Fetch all active sales users for grouping
     const salesUsers = await User.find({ role: 'sales', is_active: true }).sort({ name: 1 });
@@ -449,6 +502,7 @@ const exportLeadsHandler = async (req, res) => {
 
     const leadsRaw = await Lead.find(filter).populate('assigned_to', 'name email').sort(sortObj);
     const leads = leadsRaw.map(formatLead);
+    await attachLastEnteredRemarks(leads);
     const buffer = exportLeadsToExcelBuffer(leads);
 
     const isSelected = !!rawIds;
@@ -983,6 +1037,16 @@ router.post('/:id/activity', async (req, res) => {
     lead.status = newStatus;
     if (follow_up_date !== undefined) {
       lead.follow_up_date = follow_up_date || null;
+    }
+    const trimmedNote = (note || '').trim();
+    if (trimmedNote) {
+      const lower = trimmedNote.toLowerCase();
+      const isAuto = lower.startsWith('status updated to') ||
+                     lower.startsWith('updated lead status to') ||
+                     lower.startsWith('follow-up date set to');
+      if (!isAuto) {
+        lead.remarks = trimmedNote;
+      }
     }
     await lead.save();
 
