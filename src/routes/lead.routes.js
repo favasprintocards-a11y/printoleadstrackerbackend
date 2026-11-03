@@ -347,7 +347,6 @@ const generateSalespersonReportHandler = async (req, res) => {
 
     const leads = leadsRaw.map(formatLead);
     await attachLastEnteredRemarks(leads);
-
     // Fetch all active sales users for grouping
     const salesUsers = await User.find({ role: 'sales', is_active: true }).sort({ name: 1 });
 
@@ -653,6 +652,7 @@ router.get('/', async (req, res) => {
       .limit(pageSize);
 
     const leads = leadsRaw.map(formatLead);
+    await attachLastEnteredRemarks(leads);
 
     // Unique cities, sources, and campaigns for filter dropdowns
     const [availableCities, availableSources, availableCampaigns] = await Promise.all([
