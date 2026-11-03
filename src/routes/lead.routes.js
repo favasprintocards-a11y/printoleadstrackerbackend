@@ -1042,8 +1042,8 @@ router.post('/:id/activity', async (req, res) => {
     if (trimmedNote) {
       const lower = trimmedNote.toLowerCase();
       const isAuto = lower.startsWith('status updated to') ||
-                     lower.startsWith('updated lead status to') ||
-                     lower.startsWith('follow-up date set to');
+        lower.startsWith('updated lead status to') ||
+        lower.startsWith('follow-up date set to');
       if (!isAuto) {
         lead.remarks = trimmedNote;
       }
