@@ -13,7 +13,9 @@ import {
   generateErrorReportBuffer,
   exportLeadsToExcelBuffer,
   generateSalespersonReportBuffer,
-  normalizePhone
+  normalizePhone,
+  formatISTDate,
+  getISTDateString
 } from '../utils/excelHelper.js';
 
 const router = express.Router();
@@ -409,16 +411,14 @@ const generateSalespersonReportHandler = async (req, res) => {
       groupedData.push(unassignedGroup);
     }
 
-    const reportDate = new Date().toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
+    const reportDate = formatISTDate(new Date());
 
     const buffer = generateSalespersonReportBuffer(groupedData, reportDate);
 
     const isSelected = !!rawIds;
     const fileName = isSelected
-      ? `selected_leads_report_${new Date().toISOString().split('T')[0]}.xlsx`
-      : `salesperson_leads_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      ? `selected_leads_report_${getISTDateString()}.xlsx`
+      : `salesperson_leads_report_${getISTDateString()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
@@ -506,8 +506,8 @@ const exportLeadsHandler = async (req, res) => {
 
     const isSelected = !!rawIds;
     const fileName = isSelected
-      ? `selected_leads_export_${new Date().toISOString().split('T')[0]}.xlsx`
-      : `leads_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      ? `selected_leads_export_${getISTDateString()}.xlsx`
+      : `leads_export_${getISTDateString()}.xlsx`;
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);

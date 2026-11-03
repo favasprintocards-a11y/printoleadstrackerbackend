@@ -275,13 +275,80 @@ export function generateErrorReportBuffer(errors, duplicates) {
 }
 
 /**
+ * Format Date or ISO string into Indian Standard Time (IST - Asia/Kolkata)
+ * e.g., "03 Nov 2026, 01:21 PM"
+ */
+export function formatISTDateTime(dateVal) {
+  if (!dateVal) return '';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const raw = d.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    return raw.replace(/\b(am|pm)\b/i, m => m.toUpperCase());
+  } catch {
+    return String(dateVal);
+  }
+}
+
+/**
+ * Format Date into Indian Standard Time Date string
+ * e.g., "03 Nov 2026"
+ */
+export function formatISTDate(dateVal) {
+  if (!dateVal) return '';
+  try {
+    if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+      const [year, month, day] = dateVal.trim().split('-');
+      const d = new Date(Number(year), Number(month) - 1, Number(day));
+      return d.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    return d.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch {
+    return String(dateVal);
+  }
+}
+
+/**
+ * Get current date string in IST for filenames: "YYYY-MM-DD"
+ */
+export function getISTDateString() {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(now);
+}
+
+/**
  * Generate salesperson-wise leads report:
  *   - Sheet 1: "Summary" with one row per salesperson + stats
  *   - One sheet per salesperson with their full lead list
  */
 export function generateSalespersonReportBuffer(groupedData, reportDate) {
   const wb = XLSX.utils.book_new();
-  const dateLabel = reportDate || new Date().toLocaleDateString('en-IN');
+  const dateLabel = reportDate || formatISTDate(new Date());
 
   // ── 1. Summary Sheet ─────────────────────────────────────────────────────
   const summaryRows = groupedData.map(g => ({
@@ -334,21 +401,29 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
 
     const rows = group.leads.map((l, idx) => ({
       '#': idx + 1,
+      'Date Added': formatISTDateTime(l.createdAt || l.created_at),
       'Customer Name': l.name,
       'Phone Number': l.phone,
+      'City': l.city || '',
+      'Product Interest': l.product_interest || '',
+      'Ad Campaign': l.campaign_name || '',
       'Last Status': l.status,
-      'Next Follow-up Date': l.follow_up_date || '',
+      'Next Follow-up Date': formatISTDate(l.follow_up_date),
       'Remarks': l.remarks || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = [
-      { wch: 5 },
-      { wch: 28 },
-      { wch: 18 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 45 }
+      { wch: 5 },  // #
+      { wch: 22 }, // Date Added
+      { wch: 26 }, // Customer Name
+      { wch: 18 }, // Phone Number
+      { wch: 16 }, // City
+      { wch: 26 }, // Product Interest
+      { wch: 24 }, // Ad Campaign
+      { wch: 16 }, // Last Status
+      { wch: 18 }, // Next Follow-up Date
+      { wch: 45 }  // Remarks
     ];
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
@@ -359,6 +434,7 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
 export function exportLeadsToExcelBuffer(leads) {
   const exportData = leads.map(l => ({
     'ID': l._id ? l._id.toString() : l.id,
+    'Date Added': formatISTDateTime(l.createdAt || l.created_at),
     'Name': l.name,
     'Phone': l.phone,
     'WhatsApp': l.whatsapp || l.phone,
@@ -370,12 +446,29 @@ export function exportLeadsToExcelBuffer(leads) {
     'Source': l.source || '',
     'Status': l.status,
     'Assigned To': l.assigned_user_name || 'Unassigned',
-    'Follow-up Date': l.follow_up_date || '',
+    'Follow-up Date': formatISTDate(l.follow_up_date),
     'Remarks': l.remarks || '',
-    'Created At': l.createdAt ? new Date(l.createdAt).toLocaleString() : ''
+    'Created At': formatISTDateTime(l.createdAt || l.created_at)
   }));
   const ws = XLSX.utils.json_to_sheet(exportData);
-  ws['!cols'] = [{ wch: 26 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 22 }, { wch: 16 }, { wch: 32 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 45 }, { wch: 22 }];
+  ws['!cols'] = [
+    { wch: 26 }, // ID
+    { wch: 22 }, // Date Added
+    { wch: 22 }, // Name
+    { wch: 18 }, // Phone
+    { wch: 18 }, // WhatsApp
+    { wch: 26 }, // Email
+    { wch: 22 }, // Company
+    { wch: 16 }, // City
+    { wch: 30 }, // Product Interest
+    { wch: 26 }, // Ad Campaign
+    { wch: 16 }, // Source
+    { wch: 16 }, // Status
+    { wch: 20 }, // Assigned To
+    { wch: 18 }, // Follow-up Date
+    { wch: 45 }, // Remarks
+    { wch: 22 }  // Created At
+  ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Leads Export');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
