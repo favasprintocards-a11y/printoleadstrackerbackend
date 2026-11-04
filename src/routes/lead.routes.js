@@ -259,11 +259,17 @@ router.post('/upload/error-report', requireAdmin, (req, res) => {
 
 /**
  * Helper to fetch and attach the last entered remark for a list of leads from LeadActivity
+ * Only shows remarks entered by the sales team; otherwise leaves it blank ('').
  */
 async function attachLastEnteredRemarks(leads) {
   if (!leads || leads.length === 0) return leads;
   const leadIds = leads.map(l => l._id || l.id).filter(id => mongoose.Types.ObjectId.isValid(id));
   if (leadIds.length === 0) return leads;
+
+  // Retrieve all sales team members
+  const salesUsers = await User.find({ role: 'sales' }).select('_id name');
+  const salesUserIds = new Set(salesUsers.map(u => u._id.toString()));
+  const salesUserNames = new Set(salesUsers.map(u => (u.name || '').trim().toLowerCase()));
 
   const activities = await LeadActivity.find({ lead_id: { $in: leadIds } })
     .sort({ createdAt: -1 })
@@ -277,7 +283,11 @@ async function attachLastEnteredRemarks(leads) {
     'lead unassigned',
     'co-assigned to',
     'lead imported',
-    'lead created'
+    'lead created',
+    'ad campaign categorized as',
+    'campaign updated to',
+    'campaign renamed',
+    'bulk status updated'
   ];
 
   const remarkMap = new Map();
@@ -289,21 +299,21 @@ async function attachLastEnteredRemarks(leads) {
 
     const lower = note.toLowerCase();
     const isSystem = systemPrefixes.some(p => lower.startsWith(p));
+    if (isSystem) continue;
 
-    if (!isSystem && !remarkMap.has(lid)) {
+    // Must be entered by a sales team member
+    const isSales = (act.user_id && salesUserIds.has(act.user_id.toString())) ||
+                    salesUserNames.has((act.user_name || '').trim().toLowerCase());
+
+    if (isSales && !remarkMap.has(lid)) {
       remarkMap.set(lid, note);
     }
   }
 
   for (const lead of leads) {
     const lid = (lead._id || lead.id).toString();
-    if (remarkMap.has(lid)) {
-      lead.remarks = remarkMap.get(lid);
-    } else if (lead.remarks && lead.remarks.trim()) {
-      lead.remarks = lead.remarks.trim();
-    } else {
-      lead.remarks = '';
-    }
+    // Only show remark entered by sales team; otherwise keep completely blank
+    lead.remarks = remarkMap.get(lid) || '';
   }
 
   return leads;
@@ -748,6 +758,7 @@ router.get('/:id', async (req, res) => {
     }
 
     const lead = formatLead(leadDoc);
+    await attachLastEnteredRemarks([lead]);
 
     // Role check: sales team can only view their own assigned lead
     if (req.user.role === 'sales') {
@@ -1044,7 +1055,7 @@ router.post('/:id/activity', async (req, res) => {
       const isAuto = lower.startsWith('status updated to') ||
         lower.startsWith('updated lead status to') ||
         lower.startsWith('follow-up date set to');
-      if (!isAuto) {
+      if (!isAuto && req.user.role === 'sales') {
         lead.remarks = trimmedNote;
       }
     }
