@@ -49,7 +49,8 @@ router.get('/stats', async (req, res) => {
       'Quotation Sent': 0,
       'Won': 0,
       'Lost': 0,
-      'Not Reachable': 0
+      'Not Reachable': 0,
+      'Already Customer': 0
     };
 
     statusAgg.forEach(row => {
@@ -67,7 +68,7 @@ router.get('/stats', async (req, res) => {
     const followUpsOverdue = await Lead.countDocuments({
       ...baseFilter,
       follow_up_date: { $ne: null, $lt: todayStr },
-      status: { $nin: ['Won', 'Lost'] }
+      status: { $nin: ['Won', 'Lost', 'Already Customer'] }
     });
 
     // 4. Today's Urgent Leads List (top 6 for active campaign scope)
@@ -135,7 +136,7 @@ router.get('/stats', async (req, res) => {
           Lead.countDocuments({ ...repFilter, status: { $in: ['Interested', 'Follow-up', 'Quotation Sent'] } }),
           Lead.countDocuments({ ...repFilter, status: 'New' }),
           Lead.countDocuments({ ...repFilter, follow_up_date: todayStr }),
-          Lead.countDocuments({ ...repFilter, follow_up_date: { $ne: null, $lt: todayStr }, status: { $nin: ['Won', 'Lost'] } })
+          Lead.countDocuments({ ...repFilter, follow_up_date: { $ne: null, $lt: todayStr }, status: { $nin: ['Won', 'Lost', 'Already Customer'] } })
         ]);
 
         return {

@@ -362,6 +362,7 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
     'Won': g.leads.filter(l => l.status === 'Won').length,
     'Lost': g.leads.filter(l => l.status === 'Lost').length,
     'Not Reachable': g.leads.filter(l => l.status === 'Not Reachable').length,
+    'Already Customer': g.leads.filter(l => l.status === 'Already Customer').length,
     'Conversion Rate': g.leads.length > 0
       ? `${((g.leads.filter(l => l.status === 'Won').length / g.leads.length) * 100).toFixed(1)}%`
       : '0%',
@@ -381,6 +382,7 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
     'Won': allLeads.filter(l => l.status === 'Won').length,
     'Lost': allLeads.filter(l => l.status === 'Lost').length,
     'Not Reachable': allLeads.filter(l => l.status === 'Not Reachable').length,
+    'Already Customer': allLeads.filter(l => l.status === 'Already Customer').length,
     'Conversion Rate': allLeads.length > 0
       ? `${((allLeads.filter(l => l.status === 'Won').length / allLeads.length) * 100).toFixed(1)}%`
       : '0%',
@@ -391,7 +393,7 @@ export function generateSalespersonReportBuffer(groupedData, reportDate) {
   summaryWs['!cols'] = [
     { wch: 24 }, { wch: 13 }, { wch: 9 }, { wch: 12 }, { wch: 12 },
     { wch: 12 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 14 },
-    { wch: 17 }, { wch: 16 }
+    { wch: 18 }, { wch: 17 }, { wch: 16 }
   ];
   XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
 

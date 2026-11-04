@@ -14,7 +14,7 @@ const leadSchema = new mongoose.Schema({
   assigned_to: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   status: {
     type: String,
-    enum: ['New', 'Contacted', 'Interested', 'Follow-up', 'Quotation Sent', 'Won', 'Lost', 'Not Reachable'],
+    enum: ['New', 'Contacted', 'Interested', 'Follow-up', 'Quotation Sent', 'Won', 'Lost', 'Not Reachable', 'Already Customer'],
     default: 'New'
   },
   remarks: { type: String, trim: true, default: '' },

@@ -31,7 +31,8 @@ const VALID_STATUSES = [
   'Quotation Sent',
   'Won',
   'Lost',
-  'Not Reachable'
+  'Not Reachable',
+  'Already Customer'
 ];
 
 /**
@@ -619,7 +620,7 @@ router.get('/', async (req, res) => {
       filter.follow_up_date = todayStr;
     } else if (followup_filter === 'overdue') {
       filter.follow_up_date = { $ne: null, $lt: todayStr };
-      filter.status = { $nin: ['Won', 'Lost'] };
+      filter.status = { $nin: ['Won', 'Lost', 'Already Customer'] };
     } else if (followup_filter === 'upcoming') {
       filter.follow_up_date = { $gt: todayStr };
     }
